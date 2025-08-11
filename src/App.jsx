@@ -1,217 +1,185 @@
-import { useState, useEffect } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
-import { Button } from '@/components/ui/button.jsx'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { Download, Upload, Trash2, BarChart3, Plus, List } from 'lucide-react'
-import InsumoForm from './components/InsumoForm.jsx'
-import InsumosList from './components/InsumosList.jsx'
-import Dashboard from './components/Dashboard.jsx'
-import useLocalStorage from './hooks/useLocalStorage.js'
-import dataManager from './lib/dataManager.js'
-import './App.css'
+import { useState, useEffect, useCallback } from 'react';
+import InsumoForm from './components/InsumoForm';
+import InsumosList from './components/InsumosList';
+import Dashboard from './components/Dashboard';
+import { Button } from './components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
+import dataManager from './lib/dataManager'; // Importação correta do dataManager
+import './App.css';
 
 function App() {
-  const [insumos, setInsumos] = useLocalStorage('insumos-manager-data', [])
-  const [solicitantes, setSolicitantes] = useLocalStorage('insumos-manager-solicitantes', [])
-  const [activeTab, setActiveTab] = useState('form')
+  const [activeTab, setActiveTab] = useState("add");
+  const [insumos, setInsumos] = useState([]);
+  const [solicitantes, setSolicitantes] = useState([]);
 
-  // Adicionar novo insumo
-  const handleAddInsumo = (novoInsumo) => {
-    setInsumos(prev => [...prev, novoInsumo])
-    
-    // Adicionar solicitante à lista se não existir
-    if (novoInsumo.solicitante && !solicitantes.includes(novoInsumo.solicitante)) {
-      setSolicitantes(prev => [...prev, novoInsumo.solicitante])
-    }
-  }
+  // Função para carregar insumos do backend
+  const loadInsumos = useCallback(async () => {
+    const fetchedInsumos = await dataManager.fetchInsumos();
+    setInsumos(fetchedInsumos);
 
-  // Atualizar insumo existente
-  const handleUpdateInsumo = (insumoAtualizado) => {
-    setInsumos(prev => 
-      prev.map(insumo => 
-        insumo.id === insumoAtualizado.id ? insumoAtualizado : insumo
-      )
-    )
-  }
+    // Atualiza a lista de solicitantes únicos
+    const uniqueSolicitantes = [...new Set(fetchedInsumos.map(i => i.solicitante).filter(Boolean))];
+    setSolicitantes(uniqueSolicitantes);
+  }, []);
 
-  // Deletar insumo
-  const handleDeleteInsumo = (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este insumo?')) {
-      setInsumos(prev => prev.filter(insumo => insumo.id !== id))
-    }
-  }
+  useEffect(() => {
+    loadInsumos();
+  }, [loadInsumos]);
 
-  // Exportar dados
+  const handleAddInsumo = async (newInsumo) => {
+    await dataManager.addInsumo(newInsumo);
+    loadInsumos(); // Recarrega os insumos após adicionar
+  };
+
+  const handleUpdateInsumo = async (updatedInsumo) => {
+    await dataManager.updateInsumo(updatedInsumo);
+    loadInsumos(); // Recarrega os insumos após atualizar
+  };
+
+  const handleDeleteInsumo = async (id) => {
+    await dataManager.deleteInsumo(id);
+    loadInsumos(); // Recarrega os insumos após deletar
+  };
+
+  // Funções de exportar/importar (ainda usam lógica local, mas idealmente seriam via backend)
   const handleExportData = () => {
-    try {
-      const dataToExport = dataManager.exportData()
-      const blob = new Blob([dataToExport], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `insumos-backup-${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      alert('Erro ao exportar dados: ' + error.message)
-    }
-  }
+    const data = { insumos, solicitantes }; // Exporta os dados atualmente no estado
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "insumos_data.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-  // Importar dados
   const handleImportData = (event) => {
-    const file = event.target.files[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const success = dataManager.importData(e.target.result)
-        if (success) {
-          // Recarregar dados
-          setInsumos(dataManager.loadInsumos())
-          setSolicitantes(dataManager.loadSolicitantes())
-          alert('Dados importados com sucesso!')
-        } else {
-          alert('Erro ao importar dados. Verifique o formato do arquivo.')
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (importedData.insumos && Array.isArray(importedData.insumos)) {
+            console.warn("Importação de dados via frontend não envia para o backend diretamente. Implemente uma rota de importação em massa no backend se necessário.");
+            // Exemplo de como adicionar um por um (pode ser lento para muitos dados):
+            // for (const insumo of importedData.insumos) {
+            //   await dataManager.addInsumo(insumo);
+            // }
+            loadInsumos(); // Recarrega para refletir qualquer mudança
+          }
+        } catch (error) {
+          console.error("Erro ao importar arquivo JSON:", error);
+          alert("Erro ao importar arquivo. Verifique se é um JSON válido.");
         }
-      } catch (error) {
-        alert('Erro ao importar dados: ' + error.message)
-      }
+      };
+      reader.readAsText(file);
     }
-    reader.readAsText(file)
-    event.target.value = '' // Reset input
-  }
+  };
 
-  // Limpar todos os dados
-  const handleClearAllData = () => {
-    if (window.confirm('ATENÇÃO: Esta ação irá apagar todos os dados permanentemente. Deseja continuar?')) {
-      if (window.confirm('Tem certeza absoluta? Esta ação não pode ser desfeita.')) {
-        dataManager.clearAllData()
-        setInsumos([])
-        setSolicitantes([])
-        alert('Todos os dados foram removidos.')
-      }
-    }
-  }
-
-  const stats = dataManager.getDataStats()
+  // Estatísticas para o Dashboard (calculadas a partir dos insumos carregados)
+  const totalInsumos = insumos.length;
+  const totalValor = insumos.reduce((sum, insumo) => sum + (insumo.valor || 0), 0);
+  const totalSolicitantes = [...new Set(insumos.map(i => i.solicitante).filter(Boolean))].length;
+  const ultimaAtualizacao = insumos.length > 0 
+    ? new Date(Math.max(...insumos.map(i => new Date(i.dataSolicitacao || 0).getTime()))).toLocaleDateString("pt-BR")
+    : "N/A";
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-center mb-2">Gerenciador de Insumos</h1>
-          <p className="text-muted-foreground text-center">
-            Sistema de controle e aprovação de insumos em tempo real
-          </p>
-        </div>
+    <div className="container mx-auto p-4">
+      <h1 className="text-4xl font-bold text-center mb-8">Gerenciador de Insumos</h1>
+      <p className="text-center text-gray-600 mb-8">Sistema de controle e aprovação de insumos em tempo real</p>
 
-        {/* Estatísticas Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{stats.totalInsumos}</div>
-              <div className="text-sm text-muted-foreground">Total de Insumos</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL'
-                }).format(stats.totalValor)}
-              </div>
-              <div className="text-sm text-muted-foreground">Valor Total</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{stats.totalSolicitantes}</div>
-              <div className="text-sm text-muted-foreground">Solicitantes</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">
-                {stats.lastUpdate ? new Date(stats.lastUpdate).toLocaleDateString('pt-BR') : 'N/A'}
-              </div>
-              <div className="text-sm text-muted-foreground">Última Atualização</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Ações de Dados */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Gerenciar Dados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={handleExportData} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Dados
-              </Button>
-              
-              <Button variant="outline" onClick={() => document.getElementById('import-file').click()}>
-                <Upload className="h-4 w-4 mr-2" />
-                Importar Dados
-              </Button>
-              <input
-                id="import-file"
-                type="file"
-                accept=".json"
-                onChange={handleImportData}
-                className="hidden"
-              />
-              
-              <Button variant="destructive" onClick={handleClearAllData}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Limpar Todos os Dados
-              </Button>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card className="text-center p-4">
+          <CardTitle className="text-xl">Total de Insumos</CardTitle>
+          <CardContent className="text-3xl font-bold mt-2">{totalInsumos}</CardContent>
+        </Card>
+        <Card className="text-center p-4">
+          <CardTitle className="text-xl">Valor Total</CardTitle>
+          <CardContent className="text-3xl font-bold mt-2">
+            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalValor)}
           </CardContent>
         </Card>
+        <Card className="text-center p-4">
+          <CardTitle className="text-xl">Solicitantes</CardTitle>
+          <CardContent className="text-3xl font-bold mt-2">{totalSolicitantes}</CardContent>
+        </Card>
+        <Card className="text-center p-4">
+          <CardTitle className="text-xl">Última Atualização</CardTitle>
+          <CardContent className="text-xl font-bold mt-2">{ultimaAtualizacao}</CardContent>
+        </Card>
+      </div>
 
-        {/* Tabs Principais */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="form" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar Insumo
-            </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Lista de Insumos
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-          </TabsList>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Gerenciar Dados</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-4">
+          <Button onClick={handleExportData}>
+            Exportar Dados
+          </Button>
+          <label htmlFor="import-file" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 cursor-pointer">
+            Importar Dados
+            <input id="import-file" type="file" accept=".json" onChange={handleImportData} className="hidden" />
+          </label>
+          <Button variant="destructive" onClick={() => {
+            if (window.confirm("Tem certeza que deseja limpar TODOS os dados? Esta ação é irreversível e não afetará o backend diretamente.")) {
+              // dataManager.clearAllData(); // Não é mais necessário limpar o localStorage
+              setInsumos([]); // Limpa o estado local
+              setSolicitantes([]); // Limpa o estado local
+              alert("Dados locais limpos. Para limpar dados do backend, você precisaria de uma função específica na API.");
+            }
+          }}>
+            Limpar Todos os Dados (Local)
+          </Button>
+        </CardContent>
+      </Card>
 
-          <TabsContent value="form" className="mt-6">
-            <InsumoForm onAddInsumo={handleAddInsumo} />
-          </TabsContent>
+      <div className="flex space-x-4 mb-8">
+        <Button
+          variant={activeTab === "add" ? "default" : "outline"}
+          onClick={() => setActiveTab("add")}
+        >
+          Adicionar Insumo
+        </Button>
+        <Button
+          variant={activeTab === "list" ? "default" : "outline"}
+          onClick={() => setActiveTab("list")}
+        >
+          Lista de Insumos
+        </Button>
+        <Button
+          variant={activeTab === "dashboard" ? "default" : "outline"}
+          onClick={() => setActiveTab("dashboard")}
+        >
+          Dashboard
+        </Button>
+      </div>
 
-          <TabsContent value="list" className="mt-6">
-            <InsumosList 
-              insumos={insumos}
-              onUpdateInsumo={handleUpdateInsumo}
-              onDeleteInsumo={handleDeleteInsumo}
-            />
-          </TabsContent>
-
-          <TabsContent value="dashboard" className="mt-6">
-            <Dashboard insumos={insumos} />
-          </TabsContent>
-        </Tabs>
+      <div>
+        {activeTab === "add" && (
+          <InsumoForm
+            onAddInsumo={handleAddInsumo}
+            solicitantes={solicitantes}
+          />
+        )}
+        {activeTab === "list" && (
+          <InsumosList
+            insumos={insumos}
+            onUpdateInsumo={handleUpdateInsumo}
+            onDeleteInsumo={handleDeleteInsumo}
+          />
+        )}
+        {activeTab === "dashboard" && (
+          <Dashboard insumos={insumos} />
+        )}
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

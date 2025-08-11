@@ -1,150 +1,87 @@
-// Utilitário para gerenciar dados dos insumos
-export const dataManager = {
-  // Chaves do localStorage
-  KEYS: {
-    INSUMOS: 'insumos-manager-data',
-    SOLICITANTES: 'insumos-manager-solicitantes',
-    SETTINGS: 'insumos-manager-settings'
-  },
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-  // Salvar insumos
-  saveInsumos: (insumos) => {
+const dataManager = {
+  async fetchInsumos() {
     try {
-      localStorage.setItem(dataManager.KEYS.INSUMOS, JSON.stringify(insumos))
-      return true
+      const response = await fetch(`${API_BASE_URL}/insumos`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Erro ao salvar insumos:', error)
-      return false
+      console.error("Erro ao buscar insumos:", error);
+      return [];
     }
   },
 
-  // Carregar insumos
-  loadInsumos: () => {
+  async addInsumo(insumo) {
     try {
-      const data = localStorage.getItem(dataManager.KEYS.INSUMOS)
-      return data ? JSON.parse(data) : []
+      const response = await fetch(`${API_BASE_URL}/insumos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(insumo),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Erro ao carregar insumos:', error)
-      return []
+      console.error("Erro ao adicionar insumo:", error);
+      throw error;
     }
   },
 
-  // Salvar lista de solicitantes (para autocomplete)
-  saveSolicitantes: (solicitantes) => {
+  async updateInsumo(insumo) {
     try {
-      localStorage.setItem(dataManager.KEYS.SOLICITANTES, JSON.stringify(solicitantes))
-      return true
+      const response = await fetch(`${API_BASE_URL}/insumos/${insumo.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(insumo),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Erro ao salvar solicitantes:', error)
-      return false
+      console.error("Erro ao atualizar insumo:", error);
+      throw error;
     }
   },
 
-  // Carregar lista de solicitantes
-  loadSolicitantes: () => {
+  async deleteInsumo(id) {
     try {
-      const data = localStorage.getItem(dataManager.KEYS.SOLICITANTES)
-      return data ? JSON.parse(data) : []
+      const response = await fetch(`${API_BASE_URL}/insumos/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Erro ao carregar solicitantes:', error)
-      return []
+      console.error("Erro ao deletar insumo:", error);
+      throw error;
     }
   },
 
-  // Adicionar novo solicitante à lista (se não existir)
-  addSolicitante: (nome) => {
-    if (!nome || nome.trim() === '') return
-
-    const solicitantes = dataManager.loadSolicitantes()
-    const nomeFormatado = nome.trim()
-    
-    if (!solicitantes.includes(nomeFormatado)) {
-      solicitantes.push(nomeFormatado)
-      dataManager.saveSolicitantes(solicitantes)
-    }
-  },
-
-  // Exportar dados para JSON
+  // As funções de import/export JSON ainda podem ser úteis para backup local
+  // ou migração de dados do localStorage para o backend.
   exportData: () => {
-    const insumos = dataManager.loadInsumos()
-    const solicitantes = dataManager.loadSolicitantes()
-    
-    const exportData = {
-      insumos,
-      solicitantes,
-      exportDate: new Date().toISOString(),
-      version: '1.0'
-    }
-
-    return JSON.stringify(exportData, null, 2)
+    console.warn("A função exportData agora depende da lógica de dados do backend.");
   },
 
-  // Importar dados de JSON
-  importData: (jsonString) => {
-    try {
-      const data = JSON.parse(jsonString)
-      
-      if (data.insumos && Array.isArray(data.insumos)) {
-        dataManager.saveInsumos(data.insumos)
-      }
-      
-      if (data.solicitantes && Array.isArray(data.solicitantes)) {
-        dataManager.saveSolicitantes(data.solicitantes)
-      }
-      
-      return true
-    } catch (error) {
-      console.error('Erro ao importar dados:', error)
-      return false
-    }
+  importData: (data) => {
+    console.warn("A função importData agora depende da lógica de dados do backend.");
   },
+};
 
-  // Limpar todos os dados
-  clearAllData: () => {
-    try {
-      localStorage.removeItem(dataManager.KEYS.INSUMOS)
-      localStorage.removeItem(dataManager.KEYS.SOLICITANTES)
-      localStorage.removeItem(dataManager.KEYS.SETTINGS)
-      return true
-    } catch (error) {
-      console.error('Erro ao limpar dados:', error)
-      return false
-    }
-  },
+export default dataManager;
 
-  // Obter estatísticas dos dados
-  getDataStats: () => {
-    const insumos = dataManager.loadInsumos()
-    const solicitantes = dataManager.loadSolicitantes()
-    
-    const totalInsumos = insumos.length
-    const totalSolicitantes = solicitantes.length
-    const totalValor = insumos.reduce((sum, insumo) => sum + (insumo.valor || 0), 0)
-    
-    // Estatísticas por status
-    const statusStats = insumos.reduce((acc, insumo) => {
-      const status = insumo.status || 'Sem status'
-      acc[status] = (acc[status] || 0) + 1
-      return acc
-    }, {})
-
-    // Estatísticas por centro de custo
-    const centroStats = insumos.reduce((acc, insumo) => {
-      const centro = insumo.centroCusto || 'Não informado'
-      acc[centro] = (acc[centro] || 0) + 1
-      return acc
-    }, {})
-
-    return {
-      totalInsumos,
-      totalSolicitantes,
-      totalValor,
-      statusStats,
-      centroStats,
-      lastUpdate: insumos.length > 0 ? Math.max(...insumos.map(i => new Date(i.dataCreated || 0).getTime())) : null
-    }
-  }
-}
-
-export default dataManager
 
