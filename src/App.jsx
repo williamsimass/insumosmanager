@@ -126,16 +126,7 @@ function App() {
             Importar Dados
             <input id="import-file" type="file" accept=".json" onChange={handleImportData} className="hidden" />
           </label>
-          <Button variant="destructive" onClick={() => {
-            if (window.confirm("Tem certeza que deseja limpar TODOS os dados? Esta ação é irreversível e não afetará o backend diretamente.")) {
-              // dataManager.clearAllData(); // Não é mais necessário limpar o localStorage
-              setInsumos([]); // Limpa o estado local
-              setSolicitantes([]); // Limpa o estado local
-              alert("Dados locais limpos. Para limpar dados do backend, você precisaria de uma função específica na API.");
-            }
-          }}>
-            Limpar Todos os Dados (Local)
-          </Button>
+          
         </CardContent>
       </Card>
 
