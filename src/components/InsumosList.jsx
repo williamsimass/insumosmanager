@@ -9,6 +9,9 @@ const InsumosList = ({ insumos, onUpdateInsumo, onDeleteInsumo }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterCentroCusto, setFilterCentroCusto] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [sortOrder, setSortOrder] = useState('asc')
   const [editingId, setEditingId] = useState(null)
   const [editData, setEditData] = useState({})
 
@@ -25,17 +28,29 @@ const InsumosList = ({ insumos, onUpdateInsumo, onDeleteInsumo }) => {
   const aprovadores = ['Yan Meireles', 'Walter Cardoso']
 
   // Filtrar insumos
-  const filteredInsumos = insumos.filter(insumo => {
-    const matchesSearch = 
-      (insumo.solicitante || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (insumo.equipamento || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (insumo.numeroChamado || '').toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = !filterStatus || insumo.status === filterStatus
-    const matchesCentroCusto = !filterCentroCusto || insumo.centroCusto === filterCentroCusto
+  const filteredInsumos = insumos
+    .filter(insumo => {
+      const matchesSearch =
+        (insumo.solicitante || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (insumo.equipamento || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (insumo.numeroChamado || '').toLowerCase().includes(searchTerm.toLowerCase())
 
-    return matchesSearch && matchesStatus && matchesCentroCusto
-  })
+      const matchesStatus = !filterStatus || insumo.status === filterStatus
+      const matchesCentroCusto = !filterCentroCusto || insumo.centroCusto === filterCentroCusto
+
+      // Filtrar por data
+      const insumoDate = insumo.dataSolicitacao ? new Date(insumo.dataSolicitacao) : null
+      const matchesStart = !startDate || (insumoDate && insumoDate >= new Date(startDate))
+      const matchesEnd = !endDate || (insumoDate && insumoDate <= new Date(endDate))
+
+      return matchesSearch && matchesStatus && matchesCentroCusto && matchesStart && matchesEnd
+    })
+    // Ordenar por data
+    .sort((a, b) => {
+      const dateA = a.dataSolicitacao ? new Date(a.dataSolicitacao) : new Date(0)
+      const dateB = b.dataSolicitacao ? new Date(b.dataSolicitacao) : new Date(0)
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+    })
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -85,8 +100,8 @@ const InsumosList = ({ insumos, onUpdateInsumo, onDeleteInsumo }) => {
         </CardTitle>
         
         {/* Filtros */}
-        <div className="flex flex-col md:flex-row gap-4 mt-4">
-          <div className="flex-1">
+        <div className="flex flex-col md:flex-wrap md:flex-row gap-4 mt-4">
+          <div className="flex-1 min-w-[200px]">
             <Label htmlFor="search">Buscar</Label>
             <Input
               id="search"
@@ -99,14 +114,14 @@ const InsumosList = ({ insumos, onUpdateInsumo, onDeleteInsumo }) => {
           </div>
           
           <div className="w-full md:w-48">
-            <Label htmlFor="filterStatus">Filtrar por Status</Label>
+            <Label htmlFor="filterStatus">Status</Label>
             <select 
               id="filterStatus"
               value={filterStatus} 
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
             >
-              <option value="">Todos os status</option>
+              <option value="">Todos</option>
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
                   {status}
@@ -116,19 +131,54 @@ const InsumosList = ({ insumos, onUpdateInsumo, onDeleteInsumo }) => {
           </div>
 
           <div className="w-full md:w-48">
-            <Label htmlFor="filterCentroCusto">Filtrar por Centro</Label>
+            <Label htmlFor="filterCentroCusto">Centro</Label>
             <select 
               id="filterCentroCusto"
               value={filterCentroCusto} 
               onChange={(e) => setFilterCentroCusto(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
             >
-              <option value="">Todos os centros</option>
+              <option value="">Todos</option>
               {centrosCusto.map((centro) => (
                 <option key={centro} value={centro}>
                   {centro}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="w-full md:w-48">
+            <Label htmlFor="startDate">Data Inicial</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="w-full md:w-48">
+            <Label htmlFor="endDate">Data Final</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="w-full md:w-48">
+            <Label htmlFor="sortOrder">Ordenar por Data</Label>
+            <select
+              id="sortOrder"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="asc">Crescente</option>
+              <option value="desc">Decrescente</option>
             </select>
           </div>
         </div>
@@ -317,4 +367,3 @@ const InsumosList = ({ insumos, onUpdateInsumo, onDeleteInsumo }) => {
 }
 
 export default InsumosList
-
