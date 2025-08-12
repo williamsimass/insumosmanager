@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import dataManager from './lib/dataManager'; // Importação correta do dataManager
-import './App.css';
+import './App.css'; // <--- ESTA LINHA É CRUCIAL PARA O CSS
 
 function App() {
   const [activeTab, setActiveTab] = useState("add");
@@ -41,7 +41,7 @@ function App() {
     loadInsumos(); // Recarrega os insumos após deletar
   };
 
-  // Funções de exportar/importar (ainda usam lógica local, mas idealmente seriam via backend)
+  // Funções de exportar/importar (agora enviam para o backend)
   const handleExportData = () => {
     const data = { insumos, solicitantes }; // Exporta os dados atualmente no estado
     const jsonString = JSON.stringify(data, null, 2);
@@ -56,7 +56,7 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportData = (event) => {
+    const handleImportData = (event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -64,12 +64,15 @@ function App() {
         try {
           const importedData = JSON.parse(e.target.result);
           if (importedData.insumos && Array.isArray(importedData.insumos)) {
-            console.warn("Importação de dados via frontend não envia para o backend diretamente. Implemente uma rota de importação em massa no backend se necessário.");
-            // Exemplo de como adicionar um por um (pode ser lento para muitos dados):
-            // for (const insumo of importedData.insumos) {
-            //   await dataManager.addInsumo(insumo);
-            // }
-            loadInsumos(); // Recarrega para refletir qualquer mudança
+            try {
+              // AGORA CHAMA A NOVA FUNÇÃO NO dataManager
+              const result = await dataManager.importInsumos(importedData.insumos);
+              alert(result.message);
+              loadInsumos(); // Recarrega para refletir os novos dados
+            } catch (apiError) {
+              console.error("Erro ao enviar dados para a API de importação:", apiError);
+              alert("Erro ao importar dados para o backend. Verifique o console para detalhes.");
+            }
           }
         } catch (error) {
           console.error("Erro ao importar arquivo JSON:", error);
@@ -79,6 +82,7 @@ function App() {
       reader.readAsText(file);
     }
   };
+
 
   // Estatísticas para o Dashboard (calculadas a partir dos insumos carregados)
   const totalInsumos = insumos.length;
@@ -126,7 +130,7 @@ function App() {
             Importar Dados
             <input id="import-file" type="file" accept=".json" onChange={handleImportData} className="hidden" />
           </label>
-          
+          {/* Botão de Limpar Todos os Dados (Local) - Removido ou Comentado */}
         </CardContent>
       </Card>
 
