@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import * as XLSX from 'xlsx';
 import InsumoForm from './components/InsumoForm';
 import InsumosList from './components/InsumosList';
 import Dashboard from './components/Dashboard';
@@ -84,57 +83,6 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  // Nova função para exportar para Excel
-  const handleExportExcel = () => {
-    if (insumos.length === 0) {
-      alert('Não há dados para exportar');
-      return;
-    }
-
-    // Preparar dados para exportação
-    const dadosParaExportar = insumos.map(insumo => ({
-      'Data Solicitação': insumo.dataSolicitacao ? new Date(insumo.dataSolicitacao).toLocaleDateString('pt-BR') : '',
-      'Data Aprovação': insumo.dataAprovacao ? new Date(insumo.dataAprovacao).toLocaleDateString('pt-BR') : '',
-      'Aprovado Por': insumo.aprovadoPor || '',
-      'Solicitante': insumo.solicitante || '',
-      'Centro de Custo': insumo.centroCusto || '',
-      'Equipamento': insumo.equipamento || '',
-      'Status': insumo.status || '',
-      'Número do Chamado': insumo.numeroChamado || '',
-      'Equipamento e Quantidade': insumo.equipamentoQuantidade || '',
-      'Valor (R$)': insumo.valor ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(insumo.valor) : 'R$ 0,00'
-    }));
-
-    // Criar workbook e worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
-
-    // Ajustar largura das colunas
-    const colWidths = [
-      { wch: 15 }, // Data Solicitação
-      { wch: 15 }, // Data Aprovação
-      { wch: 20 }, // Aprovado Por
-      { wch: 25 }, // Solicitante
-      { wch: 18 }, // Centro de Custo
-      { wch: 30 }, // Equipamento
-      { wch: 20 }, // Status
-      { wch: 18 }, // Número do Chamado
-      { wch: 35 }, // Equipamento e Quantidade
-      { wch: 15 }  // Valor
-    ];
-    ws['!cols'] = colWidths;
-
-    // Adicionar worksheet ao workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Insumos');
-
-    // Gerar nome do arquivo com data atual
-    const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-    const nomeArquivo = `insumos_${dataAtual}.xlsx`;
-
-    // Fazer download
-    XLSX.writeFile(wb, nomeArquivo);
-  };
-
     const handleImportData = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -163,19 +111,7 @@ function App() {
   };
 
 
-  const handleClearAllData = async () => {
-    if (window.confirm('Tem certeza que deseja excluir TODOS os dados? Esta ação não pode ser desfeita.')) {
-      try {
-        const result = await dataManager.clearAllData();
-        alert(result.message);
-        loadInsumos(); // Recarrega os insumos após limpar
-        loadFornecedores(); // Recarrega os fornecedores após limpar
-      } catch (error) {
-        console.error("Erro ao limpar dados:", error);
-        alert("Erro ao limpar dados. Verifique o console para detalhes.");
-      }
-    }
-  };
+  // Estatísticas para o Dashboard (calculadas a partir dos insumos carregados)
   const totalInsumos = insumos.length;
   const totalValor = insumos.reduce((sum, insumo) => sum + (insumo.valor || 0), 0);
   const totalSolicitantes = [...new Set(insumos.map(i => i.solicitante).filter(Boolean))].length;
@@ -215,18 +151,12 @@ function App() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4">
           <Button onClick={handleExportData}>
-            Exportar Dados (JSON)
-          </Button>
-          <Button onClick={handleExportExcel} variant="outline">
-            Exportar para Excel
+            Exportar Dados
           </Button>
           <label htmlFor="import-file" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 cursor-pointer">
             Importar Dados
             <input id="import-file" type="file" accept=".json" onChange={handleImportData} className="hidden" />
           </label>
-          <Button onClick={handleClearAllData} variant="destructive">
-            Limpar Todos os Dados
-          </Button>
           {/* Botão de Limpar Todos os Dados (Local) - Removido ou Comentado */}
         </CardContent>
       </Card>

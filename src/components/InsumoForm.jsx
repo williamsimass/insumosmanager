@@ -22,7 +22,7 @@ const InsumoForm = ({ onAddInsumo }) => {
 
   const centrosCusto = [
     'BMG', 'Bradesco', 'Controladoria', 'PAN', 'DIGIO', 
-    'Return', 'LATAM', 'Too Seguros', 'Outros', 'Itau'
+    'Return', 'LATAM', 'Too Seguros', 'Outros'
   ]
 
   const statusOptions = [
