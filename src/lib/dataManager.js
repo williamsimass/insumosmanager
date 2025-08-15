@@ -92,6 +92,78 @@ const dataManager = {
     }
   },
 
+  // ==================== FORNECEDORES ====================
+
+  async fetchFornecedores() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/fornecedores`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Erro ao buscar fornecedores:", error);
+      return [];
+    }
+  },
+
+  async addFornecedor(fornecedor) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/fornecedores`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fornecedor),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Erro ao adicionar fornecedor:", error);
+      throw error;
+    }
+  },
+
+  async updateFornecedor(fornecedor) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/fornecedores/${fornecedor.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fornecedor),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Erro ao atualizar fornecedor:", error);
+      throw error;
+    }
+  },
+
+  async deleteFornecedor(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/fornecedores/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Erro ao deletar fornecedor:", error);
+      throw error;
+    }
+  },
+
   // As funções de import/export JSON ainda podem ser úteis para backup local
   // ou migração de dados do localStorage para o backend.
   exportData: () => {
