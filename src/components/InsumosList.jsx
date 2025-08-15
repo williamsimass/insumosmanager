@@ -22,7 +22,7 @@ const InsumosList = ({ insumos, onUpdateInsumo, onDeleteInsumo }) => {
 
   const centrosCusto = [
     'BMG', 'Bradesco', 'Controladoria', 'PAN', 'DIGIO', 
-    'Return', 'LATAM', 'Too Seguros', 'Outros'
+    'Return', 'LATAM', 'Too Seguros', 'Outros', 'Itau'
   ]
 
   const aprovadores = ['Yan Meireles', 'Walter Cardoso']
