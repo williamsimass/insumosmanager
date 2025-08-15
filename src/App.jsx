@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import InsumoForm from './components/InsumoForm';
 import InsumosList from './components/InsumosList';
 import Dashboard from './components/Dashboard';
+import FornecedorForm from './components/FornecedorForm';
+import FornecedoresList from './components/FornecedoresList';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import dataManager from './lib/dataManager'; // Importação correta do dataManager
@@ -11,6 +13,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("add");
   const [insumos, setInsumos] = useState([]);
   const [solicitantes, setSolicitantes] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
 
   // Função para carregar insumos do backend
   const loadInsumos = useCallback(async () => {
@@ -22,9 +25,16 @@ function App() {
     setSolicitantes(uniqueSolicitantes);
   }, []);
 
+  // Função para carregar fornecedores do backend
+  const loadFornecedores = useCallback(async () => {
+    const fetchedFornecedores = await dataManager.fetchFornecedores();
+    setFornecedores(fetchedFornecedores);
+  }, []);
+
   useEffect(() => {
     loadInsumos();
-  }, [loadInsumos]);
+    loadFornecedores();
+  }, [loadInsumos, loadFornecedores]);
 
   const handleAddInsumo = async (newInsumo) => {
     await dataManager.addInsumo(newInsumo);
@@ -39,6 +49,23 @@ function App() {
   const handleDeleteInsumo = async (id) => {
     await dataManager.deleteInsumo(id);
     loadInsumos(); // Recarrega os insumos após deletar
+  };
+
+  // ==================== FUNÇÕES FORNECEDORES ====================
+
+  const handleAddFornecedor = async (newFornecedor) => {
+    await dataManager.addFornecedor(newFornecedor);
+    loadFornecedores(); // Recarrega os fornecedores após adicionar
+  };
+
+  const handleUpdateFornecedor = async (updatedFornecedor) => {
+    await dataManager.updateFornecedor(updatedFornecedor);
+    loadFornecedores(); // Recarrega os fornecedores após atualizar
+  };
+
+  const handleDeleteFornecedor = async (id) => {
+    await dataManager.deleteFornecedor(id);
+    loadFornecedores(); // Recarrega os fornecedores após deletar
   };
 
   // Funções de exportar/importar (agora enviam para o backend)
@@ -153,6 +180,12 @@ function App() {
         >
           Dashboard
         </Button>
+        <Button
+          variant={activeTab === "fornecedores" ? "default" : "outline"}
+          onClick={() => setActiveTab("fornecedores")}
+        >
+          Fornecedores e Links
+        </Button>
       </div>
 
       <div>
@@ -171,6 +204,16 @@ function App() {
         )}
         {activeTab === "dashboard" && (
           <Dashboard insumos={insumos} />
+        )}
+        {activeTab === "fornecedores" && (
+          <div className="space-y-8">
+            <FornecedorForm onAddFornecedor={handleAddFornecedor} />
+            <FornecedoresList
+              fornecedores={fornecedores}
+              onUpdateFornecedor={handleUpdateFornecedor}
+              onDeleteFornecedor={handleDeleteFornecedor}
+            />
+          </div>
         )}
       </div>
     </div>
