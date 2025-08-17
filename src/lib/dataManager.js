@@ -164,22 +164,6 @@ const dataManager = {
     }
   },
 
-  async clearAllData() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/insumos/clear-all`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Erro ao limpar todos os dados:", error);
-      throw error;
-    }
-  },
-
   // As funções de import/export JSON ainda podem ser úteis para backup local
   // ou migração de dados do localStorage para o backend.
   exportData: () => {

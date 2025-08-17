@@ -163,19 +163,7 @@ function App() {
   };
 
 
-  const handleClearAllData = async () => {
-    if (window.confirm('Tem certeza que deseja excluir TODOS os dados? Esta ação não pode ser desfeita.')) {
-      try {
-        const result = await dataManager.clearAllData();
-        alert(result.message);
-        loadInsumos(); // Recarrega os insumos após limpar
-        loadFornecedores(); // Recarrega os fornecedores após limpar
-      } catch (error) {
-        console.error("Erro ao limpar dados:", error);
-        alert("Erro ao limpar dados. Verifique o console para detalhes.");
-      }
-    }
-  };
+  // Estatísticas para o Dashboard (calculadas a partir dos insumos carregados)
   const totalInsumos = insumos.length;
   const totalValor = insumos.reduce((sum, insumo) => sum + (insumo.valor || 0), 0);
   const totalSolicitantes = [...new Set(insumos.map(i => i.solicitante).filter(Boolean))].length;
@@ -224,9 +212,6 @@ function App() {
             Importar Dados
             <input id="import-file" type="file" accept=".json" onChange={handleImportData} className="hidden" />
           </label>
-          <Button onClick={handleClearAllData} variant="destructive">
-            Limpar Todos os Dados
-          </Button>
           {/* Botão de Limpar Todos os Dados (Local) - Removido ou Comentado */}
         </CardContent>
       </Card>
