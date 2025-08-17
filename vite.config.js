@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
+import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -11,11 +13,23 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ["xlsx"], // força Vite a otimizar o pacote xlsx
+    include: ["xlsx"],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis', // corrige dependências que esperam "global"
+      },
+      plugins: [
+        NodeGlobalsPolyfillPlugin({
+          buffer: true,
+          process: true,
+        }),
+        NodeModulesPolyfillPlugin(),
+      ],
+    },
   },
   build: {
     rollupOptions: {
-      external: [], // garante que não vai excluir o xlsx do bundle
+      external: [],
     },
   },
 })
